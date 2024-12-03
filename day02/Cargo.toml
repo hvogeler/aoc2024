@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 common = { path = "../common"}
+strum = "0.26.3"
+strum_macros = "0.26.4"
