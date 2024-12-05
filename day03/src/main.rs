@@ -4,7 +4,7 @@ use common::{read_test_data, Error};
 use regex::Regex;
 
 fn main() -> Result<(), Error> {
-    let data = read_test_data(Path::new("./day03/example2.dat"))?;
+    let data = read_test_data(Path::new("./day03/testdata.dat"))?;
     // println!("Example data: {}", data);
     let muls = parse(&data);
     let mut sum = 0;
@@ -15,7 +15,6 @@ fn main() -> Result<(), Error> {
     println!("Sum of products: {}", sum);
 
     // part 2
-
     let mut state = ParseState::default();
     let mut enabled_string: String = String::new();
     let mut buf: Vec<char> = Vec::new();
@@ -38,7 +37,15 @@ fn main() -> Result<(), Error> {
         cursor += 1;
     }
     enabled_string = buf.into_iter().collect();
-    println!("enabled_string: {}", enabled_string);
+
+    let muls = parse(&enabled_string);
+    let mut sum = 0;
+    for mul in muls {
+        // println!("{} = {}", mul.token, mul.eval());
+        sum += mul.eval();
+    }
+
+    println!("Part2 sum: {}", sum);
     Ok(())
 }
 
@@ -66,7 +73,7 @@ impl Mul {
     }
 }
 
-pub fn parse(s: &str) -> Vec<Mul> {
+fn parse(s: &str) -> Vec<Mul> {
     let re = Regex::new(r"mul\(\d+,\d+\)").unwrap();
     let muls: Vec<&str> = re.find_iter(s).map(|m| m.as_str()).collect();
 
