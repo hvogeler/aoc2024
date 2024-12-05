@@ -3,7 +3,7 @@ use std::{fmt::Display, path::Path};
 use common::{read_test_data, Error};
 
 fn main() -> Result<(), Error> {
-    let data = read_test_data(Path::new("./day04/example.dat"))?;
+    let data = read_test_data(Path::new("./day04/testdata.dat"))?;
     let mut cgrid = CharGrid::from(data.as_str());
     let sum = cgrid.find_xmas();
     println!("Example: sum = {}", sum);
@@ -33,11 +33,31 @@ struct CharGrid {
 
 impl CharGrid {
     fn find_xmas(&mut self) -> i64 {
-        // let mut cursor = Coord::default(); // (row, col)
         let mut sum = 0;
         for row in 0..self.dimensions.row {
             for col in 0..self.dimensions.col {
                 if self.check_right(Coord::new(row, col)) {
+                    sum += 1;
+                }
+                if self.check_left(Coord::new(row, col)) {
+                    sum += 1;
+                }
+                if self.check_up(Coord::new(row, col)) {
+                    sum += 1;
+                }
+                if self.check_down(Coord::new(row, col)) {
+                    sum += 1;
+                }
+                if self.check_up_right(Coord::new(row, col)) {
+                    sum += 1;
+                }
+                if self.check_down_right(Coord::new(row, col)) {
+                    sum += 1;
+                }
+                if self.check_up_left(Coord::new(row, col)) {
+                    sum += 1;
+                }
+                if self.check_down_left(Coord::new(row, col)) {
                     sum += 1;
                 }
             }
@@ -46,8 +66,12 @@ impl CharGrid {
     }
 
     fn check_right(&mut self, cursor: Coord) -> bool {
-        if cursor.col < self.dimensions.col - 4 {
-            if &self.grid[cursor.row][cursor.col..cursor.col + 4] == ['X', 'M', 'A', 'S'] {
+        if cursor.col < self.dimensions.col - 3 {
+            let v = &mut [' '; 4];
+            for i in 0..4 {
+                v[i] = self.grid[cursor.row][cursor.col + i];
+            }
+            if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
                     self.xmas_coords.push(Coord::new(cursor.row, cursor.col + i));
                 }
@@ -57,6 +81,118 @@ impl CharGrid {
         false
     }
     
+    fn check_left(&mut self, cursor: Coord) -> bool {
+        if cursor.col >= 3 {
+            let v = &mut [' '; 4];
+            for i in 0..4 {
+                v[i] = self.grid[cursor.row][cursor.col - i];
+            }
+            if *v == ['X', 'M', 'A', 'S'] {
+                for i in 0..4 {
+                    self.xmas_coords.push(Coord::new(cursor.row, cursor.col - i));
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    fn check_up(&mut self, cursor: Coord) -> bool {
+        if cursor.row >= 3 {
+            let v = &mut [' '; 4];
+            for i in 0..4 {
+                v[i] = self.grid[cursor.row - i][cursor.col];
+            }
+            if *v == ['X', 'M', 'A', 'S'] {
+                for i in 0..4 {
+                    self.xmas_coords.push(Coord::new(cursor.row - i, cursor.col));
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    fn check_down(&mut self, cursor: Coord) -> bool {
+        if cursor.row < self.dimensions.row - 3 {
+            let v = &mut [' '; 4];
+            for i in 0..4 {
+                v[i] = self.grid[cursor.row + i][cursor.col];
+            }
+            if *v == ['X', 'M', 'A', 'S'] {
+                for i in 0..4 {
+                    self.xmas_coords.push(Coord::new(cursor.row + i, cursor.col));
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    fn check_up_right(&mut self, cursor: Coord) -> bool {
+        if cursor.col < self.dimensions.col - 3 && cursor.row >= 3 {
+            let v = &mut [' '; 4];
+            for i in 0..4 {
+                v[i] = self.grid[cursor.row - i][cursor.col + i];
+            }
+            if *v == ['X', 'M', 'A', 'S'] {
+                for i in 0..4 {
+                    self.xmas_coords.push(Coord::new(cursor.row - i, cursor.col + i));
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    fn check_down_right(&mut self, cursor: Coord) -> bool {
+        if cursor.col < self.dimensions.col - 3 && cursor.row < self.dimensions.row - 3 {
+            let v = &mut [' '; 4];
+            for i in 0..4 {
+                v[i] = self.grid[cursor.row + i][cursor.col + i];
+            }
+            if *v == ['X', 'M', 'A', 'S'] {
+                for i in 0..4 {
+                    self.xmas_coords.push(Coord::new(cursor.row + i, cursor.col + i));
+                }
+                return true;
+            }
+        }
+        false
+    }
+    
+    fn check_up_left(&mut self, cursor: Coord) -> bool {
+        if cursor.col >= 3 && cursor.row >= 3 {
+            let v = &mut [' '; 4];
+            for i in 0..4 {
+                v[i] = self.grid[cursor.row - i][cursor.col - i];
+            }
+            if *v == ['X', 'M', 'A', 'S'] {
+                for i in 0..4 {
+                    self.xmas_coords.push(Coord::new(cursor.row - i, cursor.col - i));
+                }
+                return true;
+            }
+        }
+        false
+    }
+        
+    fn check_down_left(&mut self, cursor: Coord) -> bool {
+        if cursor.col >= 3 && cursor.row < self.dimensions.row - 3 {
+            let v = &mut [' '; 4];
+            for i in 0..4 {
+                v[i] = self.grid[cursor.row + i][cursor.col - i];
+            }
+            if *v == ['X', 'M', 'A', 'S'] {
+                for i in 0..4 {
+                    self.xmas_coords.push(Coord::new(cursor.row + i, cursor.col - i));
+                }
+                return true;
+            }
+        }
+        false
+    }
+
     fn get_result_grid(&self) -> ResultGrid {
         let mut grid: Vec<Vec<char>> = (0..self.dimensions.row).map(|_| (0..self.dimensions.col).map(|_| '.').collect()).collect();
         for xmas_coord in self.xmas_coords.iter() {
