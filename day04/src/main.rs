@@ -9,6 +9,7 @@ fn main() -> Result<(), Error> {
     println!("Example: sum = {}", sum);
     let result_grid = cgrid.get_result_grid();
     println!("Result: \n{}", result_grid);
+    assert_eq!(sum, 2534);
     Ok(())
 }
 
@@ -36,29 +37,31 @@ impl CharGrid {
         let mut sum = 0;
         for row in 0..self.dimensions.row {
             for col in 0..self.dimensions.col {
-                if self.check_right(Coord::new(row, col)) {
-                    sum += 1;
-                }
-                if self.check_left(Coord::new(row, col)) {
-                    sum += 1;
-                }
-                if self.check_up(Coord::new(row, col)) {
-                    sum += 1;
-                }
-                if self.check_down(Coord::new(row, col)) {
-                    sum += 1;
-                }
-                if self.check_up_right(Coord::new(row, col)) {
-                    sum += 1;
-                }
-                if self.check_down_right(Coord::new(row, col)) {
-                    sum += 1;
-                }
-                if self.check_up_left(Coord::new(row, col)) {
-                    sum += 1;
-                }
-                if self.check_down_left(Coord::new(row, col)) {
-                    sum += 1;
+                if self.grid[row][col] == 'X' {
+                    if self.check_right(Coord::new(row, col)) {
+                        sum += 1;
+                    }
+                    if self.check_left(Coord::new(row, col)) {
+                        sum += 1;
+                    }
+                    if self.check_up(Coord::new(row, col)) {
+                        sum += 1;
+                    }
+                    if self.check_down(Coord::new(row, col)) {
+                        sum += 1;
+                    }
+                    if self.check_up_right(Coord::new(row, col)) {
+                        sum += 1;
+                    }
+                    if self.check_down_right(Coord::new(row, col)) {
+                        sum += 1;
+                    }
+                    if self.check_up_left(Coord::new(row, col)) {
+                        sum += 1;
+                    }
+                    if self.check_down_left(Coord::new(row, col)) {
+                        sum += 1;
+                    }
                 }
             }
         }
@@ -73,14 +76,15 @@ impl CharGrid {
             }
             if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
-                    self.xmas_coords.push(Coord::new(cursor.row, cursor.col + i));
+                    self.xmas_coords
+                        .push(Coord::new(cursor.row, cursor.col + i));
                 }
                 return true;
             }
         }
         false
     }
-    
+
     fn check_left(&mut self, cursor: Coord) -> bool {
         if cursor.col >= 3 {
             let v = &mut [' '; 4];
@@ -89,7 +93,8 @@ impl CharGrid {
             }
             if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
-                    self.xmas_coords.push(Coord::new(cursor.row, cursor.col - i));
+                    self.xmas_coords
+                        .push(Coord::new(cursor.row, cursor.col - i));
                 }
                 return true;
             }
@@ -105,7 +110,8 @@ impl CharGrid {
             }
             if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
-                    self.xmas_coords.push(Coord::new(cursor.row - i, cursor.col));
+                    self.xmas_coords
+                        .push(Coord::new(cursor.row - i, cursor.col));
                 }
                 return true;
             }
@@ -121,7 +127,8 @@ impl CharGrid {
             }
             if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
-                    self.xmas_coords.push(Coord::new(cursor.row + i, cursor.col));
+                    self.xmas_coords
+                        .push(Coord::new(cursor.row + i, cursor.col));
                 }
                 return true;
             }
@@ -137,7 +144,8 @@ impl CharGrid {
             }
             if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
-                    self.xmas_coords.push(Coord::new(cursor.row - i, cursor.col + i));
+                    self.xmas_coords
+                        .push(Coord::new(cursor.row - i, cursor.col + i));
                 }
                 return true;
             }
@@ -153,14 +161,15 @@ impl CharGrid {
             }
             if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
-                    self.xmas_coords.push(Coord::new(cursor.row + i, cursor.col + i));
+                    self.xmas_coords
+                        .push(Coord::new(cursor.row + i, cursor.col + i));
                 }
                 return true;
             }
         }
         false
     }
-    
+
     fn check_up_left(&mut self, cursor: Coord) -> bool {
         if cursor.col >= 3 && cursor.row >= 3 {
             let v = &mut [' '; 4];
@@ -169,14 +178,15 @@ impl CharGrid {
             }
             if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
-                    self.xmas_coords.push(Coord::new(cursor.row - i, cursor.col - i));
+                    self.xmas_coords
+                        .push(Coord::new(cursor.row - i, cursor.col - i));
                 }
                 return true;
             }
         }
         false
     }
-        
+
     fn check_down_left(&mut self, cursor: Coord) -> bool {
         if cursor.col >= 3 && cursor.row < self.dimensions.row - 3 {
             let v = &mut [' '; 4];
@@ -185,7 +195,8 @@ impl CharGrid {
             }
             if *v == ['X', 'M', 'A', 'S'] {
                 for i in 0..4 {
-                    self.xmas_coords.push(Coord::new(cursor.row + i, cursor.col - i));
+                    self.xmas_coords
+                        .push(Coord::new(cursor.row + i, cursor.col - i));
                 }
                 return true;
             }
@@ -194,7 +205,9 @@ impl CharGrid {
     }
 
     fn get_result_grid(&self) -> ResultGrid {
-        let mut grid: Vec<Vec<char>> = (0..self.dimensions.row).map(|_| (0..self.dimensions.col).map(|_| '.').collect()).collect();
+        let mut grid: Vec<Vec<char>> = (0..self.dimensions.row)
+            .map(|_| (0..self.dimensions.col).map(|_| '.').collect())
+            .collect();
         for xmas_coord in self.xmas_coords.iter() {
             grid[xmas_coord.row][xmas_coord.col] = self.grid[xmas_coord.row][xmas_coord.col];
         }
@@ -214,11 +227,13 @@ impl From<&str> for CharGrid {
             cgrid.grid.push(row);
             rows += 1;
         }
-        cgrid.dimensions = Coord { row: rows, col: cgrid.grid[0].len()};
+        cgrid.dimensions = Coord {
+            row: rows,
+            col: cgrid.grid[0].len(),
+        };
         cgrid
     }
 }
-
 
 struct ResultGrid {
     grid: Vec<Vec<char>>,
@@ -226,9 +241,7 @@ struct ResultGrid {
 
 impl ResultGrid {
     fn new(grid: Vec<Vec<char>>) -> Self {
-        Self {
-            grid
-        }
+        Self { grid }
     }
 }
 
