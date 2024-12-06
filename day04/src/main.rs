@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::Path};
+use std::{fmt::Display, io::Cursor, path::Path};
 
 use common::{read_test_data, Error};
 
@@ -6,10 +6,18 @@ fn main() -> Result<(), Error> {
     let data = read_test_data(Path::new("./day04/testdata.dat"))?;
     let mut cgrid = CharGrid::from(data.as_str());
     let sum = cgrid.find_xmas();
-    println!("Example: sum = {}", sum);
+    println!("Part 1: Count = {}", sum);
     let result_grid = cgrid.get_result_grid();
     println!("Result: \n{}", result_grid);
     assert_eq!(sum, 2534);
+
+    // Part 2
+    let sum = cgrid.find_xmas2();
+    let result_grid = cgrid.get_result_grid();
+    println!("Result: \n{}\n", result_grid);
+    println!("Part 2: Count = {}", sum);
+    assert_eq!(sum, 1866);
+
     Ok(())
 }
 
@@ -33,39 +41,72 @@ struct CharGrid {
 }
 
 impl CharGrid {
-    fn find_xmas(&mut self) -> i64 {
-        let mut sum = 0;
-        for row in 0..self.dimensions.row {
-            for col in 0..self.dimensions.col {
-                if self.grid[row][col] == 'X' {
-                    if self.check_right(Coord::new(row, col)) {
-                        sum += 1;
-                    }
-                    if self.check_left(Coord::new(row, col)) {
-                        sum += 1;
-                    }
-                    if self.check_up(Coord::new(row, col)) {
-                        sum += 1;
-                    }
-                    if self.check_down(Coord::new(row, col)) {
-                        sum += 1;
-                    }
-                    if self.check_up_right(Coord::new(row, col)) {
-                        sum += 1;
-                    }
-                    if self.check_down_right(Coord::new(row, col)) {
-                        sum += 1;
-                    }
-                    if self.check_up_left(Coord::new(row, col)) {
-                        sum += 1;
-                    }
-                    if self.check_down_left(Coord::new(row, col)) {
-                        sum += 1;
+    fn find_xmas2(&mut self) -> i64 {
+        self.xmas_coords.clear();
+        let mut count = 0;
+        for row in 1..(self.dimensions.row - 1) {
+            for col in 1..(self.dimensions.col - 1) {
+                if self.grid[row][col] == 'A' {
+                    if self.is_mas_cross(Coord::new(row, col)) {
+                        count += 1;
+                        self.xmas_coords.push(Coord::new(row, col));
+                        self.xmas_coords.push(Coord::new(row - 1, col - 1));
+                        self.xmas_coords.push(Coord::new(row - 1, col + 1));
+                        self.xmas_coords.push(Coord::new(row + 1, col - 1));
+                        self.xmas_coords.push(Coord::new(row + 1, col + 1));
                     }
                 }
             }
         }
-        sum
+        count
+    }
+
+    fn is_mas_cross(&mut self, at: Coord) -> bool {
+        let mut chars = [' '; 4];
+        chars[0] = self.grid[at.row - 1][at.col - 1];
+        chars[1] = self.grid[at.row - 1][at.col + 1];
+        chars[2] = self.grid[at.row + 1][at.col - 1];
+        chars[3] = self.grid[at.row + 1][at.col + 1];
+
+        let count_s = chars.iter().filter(|c| **c == 'S').count();
+        let count_m = chars.iter().filter(|c| **c == 'M').count();
+
+        count_m == 2 && count_s == 2 && chars != ['S', 'M', 'M' ,'S']  && chars != ['M', 'S', 'S' ,'M']
+    }
+
+    fn find_xmas(&mut self) -> i64 {
+        let mut count = 0;
+        for row in 0..self.dimensions.row {
+            for col in 0..self.dimensions.col {
+                if self.grid[row][col] == 'X' {
+                    if self.check_right(Coord::new(row, col)) {
+                        count += 1;
+                    }
+                    if self.check_left(Coord::new(row, col)) {
+                        count += 1;
+                    }
+                    if self.check_up(Coord::new(row, col)) {
+                        count += 1;
+                    }
+                    if self.check_down(Coord::new(row, col)) {
+                        count += 1;
+                    }
+                    if self.check_up_right(Coord::new(row, col)) {
+                        count += 1;
+                    }
+                    if self.check_down_right(Coord::new(row, col)) {
+                        count += 1;
+                    }
+                    if self.check_up_left(Coord::new(row, col)) {
+                        count += 1;
+                    }
+                    if self.check_down_left(Coord::new(row, col)) {
+                        count += 1;
+                    }
+                }
+            }
+        }
+        count
     }
 
     fn check_right(&mut self, cursor: Coord) -> bool {

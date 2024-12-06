@@ -1,0 +1,25 @@
+Correct combinations
+M M   MMSS
+ A
+S S
+
+S M   SMSM
+ A
+S M
+
+M S   MSMS
+ A
+M S
+
+S S   SSMM
+ A
+M M
+
+Incorrect combinations
+S M   SMMS
+ A
+M S
+
+M S   MSSM
+ A
+S M
