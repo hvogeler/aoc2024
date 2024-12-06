@@ -6,17 +6,21 @@ fn main() -> Result<(), Error> {
     let data = read_test_data(Path::new("./day05/testdata.dat"))?;
     let rules = OrderRules::from_input(&data);
     let page_updates = PageUpdate::page_updates_from(&data);
+
+    let mut incorrect_updates: Vec<PageUpdate> = Vec::new();
     let mut sum_middle_numbers = 0;
     for update in page_updates {
         if update.is_correctly_ordered(&rules) {
             sum_middle_numbers += update.get_middle_page_no();
+        } else {
+            incorrect_updates.push(update);
         }
     }
     println!("Part 1: Sum of middle page numbers: {}", sum_middle_numbers);
 
     // Part 2
-    let incorrect_updates: Vec<PageUpdate> = Vec::new();
 
+    
     Ok(())
 }
 
