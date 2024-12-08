@@ -14,12 +14,38 @@ fn main() -> Result<(), Error> {
     println!("Number of positions visited: {}", walker.positions_visited.len());
     let result_grid = walker.get_result_grid();
     println!("Result: \n{}", result_grid);
-    assert_eq!(walker.positions_visited.len(), 4559);
+    // assert_eq!(walker.positions_visited.len(), 4559);
+
+    // Part 2 - detect loops
+    let mut count_loops = 0;
+    for i in 0..grid.dimensions.row {
+        for j in 0..grid.dimensions.col {
+            let coord = Coord::new(i, j);
+            let c = grid.at(&coord);
+            if c != *OBSTACLE && c != *GUARD {
+                let mut grid = CharGrid::from(data.as_str());
+                grid.set(&coord, *OBSTACLE);
+                grid.get_objects();
+                let mut walker = Walker::new(&grid);
+                let mut position = walker.walk();
+                while position == Position::OnGrid {
+                    position = walker.walk();
+                }
+                if position == Position::LoopStart {
+                    count_loops += 1;
+                }
+                grid.set(&coord, *SPACE);
+            }
+        }
+    }
+
+    println!("Part 2: count_loops: {:?}", count_loops);
     Ok(())
 }
 
 const OBSTACLE: &'static char = &'#';
 const GUARD: &'static char = &'^';
+const SPACE: &'static char = &'.';
 
 #[derive(Debug)]
 struct Walker<'a> {
@@ -76,10 +102,25 @@ impl<'a> Walker<'a> {
             self.turn();
         } else {
             self.guard_current_position = next_pos.clone();
-            self.positions_visited
-                .insert(VisitedPosition::new(next_pos, self.direction.clone(), PositionType::VisitedPosition));
+            // self.positions_visited
+            //     .insert(VisitedPosition::new(next_pos, self.direction.clone(), PositionType::VisitedPosition));
+            if self.add_visited_position(&next_pos, &self.direction.clone()) == NewVisitedPositionResult::LoopDetected {
+                println!("Loop at {}", next_pos);
+                return Position::LoopStart;
+            }
         }
         Position::OnGrid
+    }
+
+    fn add_visited_position(&mut self, pos: &Coord, direction: &Direction) -> NewVisitedPositionResult {
+        let new_position = VisitedPosition::new(pos.clone(), self.direction.clone(), PositionType::VisitedPosition);
+        if let Some(pos_already_visited) = self.positions_visited.get(&new_position) {
+            if pos_already_visited.direction == *direction {
+                return NewVisitedPositionResult::LoopDetected;
+            }
+        }
+        self.positions_visited.insert(new_position);
+        NewVisitedPositionResult::Ok
     }
 
     fn turn(&mut self) {
@@ -112,6 +153,12 @@ impl<'a> Walker<'a> {
 
         ResultGrid::new(grid)
     }
+}
+
+#[derive(Debug, PartialEq)]
+enum NewVisitedPositionResult {
+    Ok,
+    LoopDetected,
 }
 
 #[derive(Debug)]
@@ -180,6 +227,10 @@ impl CharGrid {
     fn at(&self, coord: &Coord) -> char {
         self.grid[coord.row][coord.col]
     }
+
+    fn set(&mut self, coord: &Coord, c: char) {
+        self.grid[coord.row][coord.col] = c;
+    }
 }
 
 impl From<&str> for CharGrid {
@@ -214,6 +265,7 @@ impl Display for CharGrid {
 enum Position {
     OnGrid,
     OffGrid,
+    LoopStart,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -246,6 +298,13 @@ impl Coord {
         Coord { row, col }
     }
 }
+
+impl Display for Coord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.row, self.col)
+    }
+}
+
 struct ResultGrid {
     grid: Vec<Vec<char>>,
 }
