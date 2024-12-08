@@ -14,7 +14,7 @@ fn main() -> Result<(), Error> {
     println!("Number of positions visited: {}", walker.positions_visited.len());
     let result_grid = walker.get_result_grid();
     println!("Result: \n{}", result_grid);
-    // assert_eq!(walker.positions_visited.len(), 4559);
+    assert_eq!(walker.positions_visited.len(), 4559);
 
     // Part 2 - detect loops
     let mut count_loops = 0;
@@ -33,6 +33,7 @@ fn main() -> Result<(), Error> {
                 }
                 if position == Position::LoopStart {
                     count_loops += 1;
+                    println!("{}. loop detected for obstacle at {}", count_loops, coord);
                 }
                 grid.set(&coord, *SPACE);
             }
@@ -40,6 +41,7 @@ fn main() -> Result<(), Error> {
     }
 
     println!("Part 2: count_loops: {:?}", count_loops);
+    assert_eq!(count_loops, 1604);
     Ok(())
 }
 
@@ -102,10 +104,7 @@ impl<'a> Walker<'a> {
             self.turn();
         } else {
             self.guard_current_position = next_pos.clone();
-            // self.positions_visited
-            //     .insert(VisitedPosition::new(next_pos, self.direction.clone(), PositionType::VisitedPosition));
             if self.add_visited_position(&next_pos, &self.direction.clone()) == NewVisitedPositionResult::LoopDetected {
-                println!("Loop at {}", next_pos);
                 return Position::LoopStart;
             }
         }
