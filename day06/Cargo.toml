@@ -1,0 +1,10 @@
+[package]
+name = "day06"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common = { path = "../common"}
+regex = "1.11.1"
+strum = "0.26.3"
+strum_macros = "0.26.4"
