@@ -1,9 +1,9 @@
-use std::{cmp::Ordering, collections::HashMap, path::Path};
+use std::{cmp::Ordering, collections::{HashMap, HashSet}, path::Path};
 
 use common::{read_test_data, Error};
 
 fn main() -> Result<(), Error> {
-    let data = read_test_data(Path::new("./day05/example.dat"))?;
+    let data = read_test_data(Path::new("./day05/testdata.dat"))?;
     let rules = OrderRules::from_input(&data);
     let page_updates = PageUpdate::page_updates_from(&data, &rules);
 
@@ -17,8 +17,17 @@ fn main() -> Result<(), Error> {
         }
     }
     println!("Part 1: Sum of middle page numbers: {}", sum_middle_numbers);
+    assert_eq!(sum_middle_numbers, 5108);
 
     // Part 2
+
+    let mut sum_middle_numbers = 0;
+    for page_update in incorrect_updates.iter_mut() {
+        page_update.pages.sort();
+        sum_middle_numbers += page_update.get_middle_page_no();
+    }
+    println!("Part 2: Sum of middle page numbers: {}", sum_middle_numbers);
+    assert_eq!(sum_middle_numbers, 7380);
 
     Ok(())
 }
@@ -35,6 +44,8 @@ impl<'a> PartialEq for Page<'a> {
     }
 }
 
+impl<'a> Eq for Page<'a> {}
+
 impl<'a> PartialOrd for Page<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         if let Some(ref followers) = self.order_rules.rule_map.get(&self.page_no) {
@@ -44,7 +55,13 @@ impl<'a> PartialOrd for Page<'a> {
                 return Some(Ordering::Greater);
             }
         }
-        None
+        panic!("Order rules are incomplete")
+    }
+}
+
+impl<'a> Ord for Page<'a> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
     }
 }
 
@@ -54,10 +71,6 @@ impl<'a> Page<'a> {
             page_no,
             order_rules,
         }
-    }
-
-    fn add_order_rules(&mut self, order_rules: &'a OrderRules) {
-        self.order_rules = order_rules;
     }
 }
 
@@ -77,14 +90,12 @@ impl<'a> PageUpdate<'a> {
     }
 
     fn is_correctly_ordered(&self) -> bool {
-        for (i, page_no) in self.pages.iter().enumerate() {
-            // if let Some(ref followers) = rules.rule_map.get(&page_no) {
+        for i in 0..self.pages.iter().len() {
             for j in (i + 1)..self.pages.len() {
                 if self.pages[i] > self.pages[j] {
                     return false;
                 }
             }
-            // }
         }
         true
     }
@@ -114,7 +125,7 @@ impl<'a> PageUpdate<'a> {
 
 #[derive(Debug, Default)]
 struct OrderRules {
-    rule_map: HashMap<i64, Vec<i64>>,
+    rule_map: HashMap<i64, HashSet<i64>>,
 }
 
 impl OrderRules {
@@ -139,12 +150,14 @@ impl OrderRules {
         let following_page_no: i64 = parts.next().unwrap().parse().unwrap();
         if self.rule_map.contains_key(&page_no) {
             let rule = self.rule_map.get_mut(&page_no).unwrap();
-            rule.push(following_page_no);
+            rule.insert(following_page_no);
         } else {
-            self.rule_map.insert(page_no, vec![following_page_no]);
+            let mut set_greated_page_nos = HashSet::new();
+            set_greated_page_nos.insert(following_page_no);
+            self.rule_map.insert(page_no, set_greated_page_nos);
         }
         if !self.rule_map.contains_key(&following_page_no) {
-            self.rule_map.insert(following_page_no, vec![]);
+            self.rule_map.insert(following_page_no, HashSet::new());
         }
     }
 }
@@ -159,7 +172,7 @@ mod tests {
         let data = read_test_data(Path::new("./example.dat")).unwrap();
         let r = OrderRules::from_input(&data);
         println!("{:?}", r);
-        assert_eq!(r.rule_map[&97], vec![13, 61, 47, 29, 53, 75]);
+        assert_eq!(r.rule_map[&97], HashSet::from_iter(vec![13, 61, 47, 29, 53, 75]));
         assert_eq!(r.rule_map.len(), 7);
     }
 
@@ -186,7 +199,6 @@ mod tests {
         assert_eq!(pu.get_middle_page_no(), 61);
         let pu = PageUpdate::from_csv("75,29,13", &rules);
         assert_eq!(pu.get_middle_page_no(), 29);
-        let pu = PageUpdate::from_csv("75,29,13,2", &rules);
     }
 
     #[test]
