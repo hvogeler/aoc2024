@@ -1,6 +1,5 @@
-use std::{collections::HashSet, fmt::Display, path::Path};
-
 use common::{read_test_data, Error};
+use std::{collections::HashSet, fmt::Display, path::Path};
 
 fn main() -> Result<(), Error> {
     let data = read_test_data(Path::new("./day06/testdata.dat")).unwrap();
@@ -12,12 +11,10 @@ fn main() -> Result<(), Error> {
     while position == Position::OnGrid {
         position = walker.walk();
     }
-    println!(
-        "Number of positions visited: {}",
-        walker.positions_visited.len()
-    );
+    println!("Number of positions visited: {}", walker.positions_visited.len());
     let result_grid = walker.get_result_grid();
     println!("Result: \n{}", result_grid);
+    assert_eq!(walker.positions_visited.len(), 4559);
     Ok(())
 }
 
@@ -29,16 +26,18 @@ struct Walker<'a> {
     char_grid: &'a CharGrid,
     guard_current_position: Coord,
     direction: Direction,
-    positions_visited: HashSet<Coord>,
+    positions_visited: HashSet<VisitedPosition>,
 }
 
 impl<'a> Walker<'a> {
     fn new(char_grid: &'a CharGrid) -> Self {
+        let mut positions_visited: HashSet<VisitedPosition> = HashSet::new();
+        positions_visited.insert(VisitedPosition::new(char_grid.guard.clone(), Direction::Up, PositionType::StartPosition));
         Walker {
             char_grid,
             guard_current_position: char_grid.guard.clone(),
             direction: Direction::Up,
-            positions_visited: HashSet::new(),
+            positions_visited,
         }
     }
 
@@ -51,26 +50,34 @@ impl<'a> Walker<'a> {
                 }
                 next_pos.row -= 1;
             }
-            Direction::Down => next_pos.row += 1,
+            Direction::Down => {
+                next_pos.row += 1;
+                if next_pos.row >= self.char_grid.dimensions.row {
+                    self.guard_current_position = next_pos;
+                    return Position::OffGrid;
+                }
+            }
             Direction::Left => {
                 if next_pos.col == 0 {
                     return Position::OffGrid;
                 }
                 next_pos.col -= 1;
             }
-            Direction::Right => next_pos.col += 1,
+            Direction::Right => {
+                next_pos.col += 1;
+                if next_pos.col >= self.char_grid.dimensions.col {
+                    self.guard_current_position = next_pos;
+                    return Position::OffGrid;
+                }
+            }
         };
-        if next_pos.row >= self.char_grid.dimensions.row
-            || next_pos.col >= self.char_grid.dimensions.col
-        {
-            self.guard_current_position = next_pos;
-            return Position::OffGrid;
-        }
-        if self.char_grid.at(&next_pos) == *OBSTACLE {
+
+        if self.char_grid.is_obstacle(&next_pos) {
             self.turn();
         } else {
             self.guard_current_position = next_pos.clone();
-            self.positions_visited.insert(next_pos);
+            self.positions_visited
+                .insert(VisitedPosition::new(next_pos, self.direction.clone(), PositionType::VisitedPosition));
         }
         Position::OnGrid
     }
@@ -85,15 +92,63 @@ impl<'a> Walker<'a> {
     }
 
     fn get_result_grid(&self) -> ResultGrid {
-        let mut grid: Vec<Vec<char>> = (0..self.char_grid.dimensions.row)
-            .map(|_| (0..self.char_grid.dimensions.col).map(|_| '.').collect())
-            .collect();
+        // let mut grid: Vec<Vec<char>> = (0..self.char_grid.dimensions.row)
+        //     .map(|_| (0..self.char_grid.dimensions.col).map(|_| '.').collect())
+        //     .collect();
+        let mut grid: Vec<Vec<char>> = Vec::new();
+        for i in 0..self.char_grid.dimensions.row {
+            grid.push(Vec::new());
+            for j in 0..self.char_grid.dimensions.col {
+                grid[i].push(self.char_grid.at(&Coord { row: i, col: j }));
+            }
+        }
         for position_visited in self.positions_visited.iter() {
-            grid[position_visited.row][position_visited.col] = 'X';
+            grid[position_visited.position.row][position_visited.position.col] = if position_visited.position_type == PositionType::StartPosition {
+                'S'
+            } else {
+                Direction::indicator(&position_visited.direction)
+            }
         }
 
         ResultGrid::new(grid)
     }
+}
+
+#[derive(Debug)]
+struct VisitedPosition {
+    position: Coord,
+    direction: Direction,
+    position_type: PositionType,
+}
+
+impl VisitedPosition {
+    fn new(position: Coord, direction: Direction, position_type: PositionType) -> Self {
+        VisitedPosition {
+            position,
+            direction,
+            position_type,
+        }
+    }
+}
+
+impl PartialEq for VisitedPosition {
+    fn eq(&self, other: &Self) -> bool {
+        self.position == other.position
+    }
+}
+
+impl Eq for VisitedPosition {}
+
+impl std::hash::Hash for VisitedPosition {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.position.hash(state);
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum PositionType {
+    StartPosition,
+    VisitedPosition,
 }
 
 #[derive(Debug, Default)]
@@ -130,9 +185,7 @@ impl CharGrid {
 impl From<&str> for CharGrid {
     fn from(data: &str) -> Self {
         let mut rows = 0;
-        let mut cgrid = Self {
-            ..Default::default()
-        };
+        let mut cgrid = Self { ..Default::default() };
         for line in data.lines() {
             let row: Vec<char> = line.chars().collect();
             cgrid.grid.push(row);
@@ -163,7 +216,7 @@ enum Position {
     OffGrid,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum Direction {
     Up,
     Down,
@@ -171,7 +224,16 @@ enum Direction {
     Left,
 }
 
-impl Direction {}
+impl Direction {
+    fn indicator(d: &Direction) -> char {
+        match d {
+            Direction::Down => 'v',
+            Direction::Left => '<',
+            Direction::Up => '^',
+            Direction::Right => '>',
+        }
+    }
+}
 
 #[derive(Debug, Default, Eq, Hash, PartialEq, Clone)]
 struct Coord {
