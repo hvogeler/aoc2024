@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+bitvec = "1.0.1"
 common = { path = "../common"}
 regex = "1.11.1"
 strum = "0.26.3"
