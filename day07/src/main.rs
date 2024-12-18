@@ -33,12 +33,13 @@ fn main() -> Result<(), Error> {
                 operands: eq.concat_operands(i.view_bits::<Lsb0>()),
             };
             equations_concatted.push(concat_eq);
-            println!("{}", i);
         }
     }
 
     for eq in equations_concatted {
+        println!("Check: {:?}", eq);
         if eq.is_solvable() {
+            println!("  Solveable: {:?}", eq);
             sum_solveable_equations += eq.expected_result;
         }
     }
@@ -86,20 +87,21 @@ impl Equation {
     }
 
     fn concat_operands(&self, operator_positions: &BitSlice<usize>) -> Vec<i64> {
-        let mut result_ops: Vec<i64> = Vec::new();
-        let mut operand_idx = 0;
+        let mut result_ops: Vec<i64> = vec![self.operands[0]];
+        let mut src_operand_idx = 1;
+        let mut tgt_operand_idx = 0;
         for operator_idx in 0..self.operator_count() {
             if operator_positions[operator_idx as usize] {
-                let op1 = self.operands[operand_idx as usize];
-                let op2 = self.operands[operand_idx as usize + 1];
+                let op1 = result_ops[tgt_operand_idx];
+                let op2 = self.operands[src_operand_idx];
                 let mut s: String = op1.to_string();
                 s += &op2.to_string();
-                result_ops.push(s.parse().unwrap());
-                operand_idx += 2;
+                result_ops[tgt_operand_idx] = s.parse().unwrap();
             } else {
-                result_ops.push(self.operands[operand_idx as usize]);
-                operand_idx += 1;
+                result_ops.push(self.operands[src_operand_idx]);
+                tgt_operand_idx += 1;
             }
+            src_operand_idx += 1;
         }
         result_ops
     }
@@ -152,15 +154,25 @@ mod tests {
         let eq1 = Equation::from_str("3267: 81 40 27").unwrap();
         let xx = eq1.concat_operands(bits![1,1]);
         assert_eq!(xx, vec![814027]);
-        // let xx = eq1.concat_operands(1);
-        // assert_eq!(xx, vec![81, 4027]);
-        // let eq1 = Equation::from_str("7290: 6 8 6 15").unwrap();
-        // let xx = eq1.concat_operands(0);
-        // assert_eq!(xx, vec![68, 6, 15]);
-        // let xx = eq1.concat_operands(1);
-        // assert_eq!(xx, vec![6, 86, 15]);
-        // let xx = eq1.concat_operands(2);
-        // assert_eq!(xx, vec![6, 8, 615]);
+        let xx = eq1.concat_operands(bits![1,0]);
+        assert_eq!(xx, vec![8140, 27]);
+        let xx = eq1.concat_operands(bits![0,1]);
+        assert_eq!(xx, vec![81, 4027]);
+        let eq1 = Equation::from_str("7290: 6 8 6 15").unwrap();
+        let xx = eq1.concat_operands(bits![1,1,1]);
+        assert_eq!(xx, vec![68615]);
+        let xx = eq1.concat_operands(bits![0,1,1]);
+        assert_eq!(xx, vec![6, 8615]);
+        let xx = eq1.concat_operands(bits![0,0,1]);
+        assert_eq!(xx, vec![6, 8, 615]);
+        let xx = eq1.concat_operands(bits![0,1,0]);
+        assert_eq!(xx, vec![6, 86, 15]);
+        let xx = eq1.concat_operands(bits![1,1,0]);
+        assert_eq!(xx, vec![686, 15]);
+        let xx = eq1.concat_operands(bits![1,0,0]);
+        assert_eq!(xx, vec![68, 6, 15]);
+        let xx = eq1.concat_operands(bits![1,0,1]);
+        assert_eq!(xx, vec![68, 615]);
     }
 
     #[test]
