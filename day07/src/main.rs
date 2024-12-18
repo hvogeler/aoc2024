@@ -1,24 +1,49 @@
-use std::{fmt::Display, path::Path, str::FromStr};
+use std::{fmt::Display, path::Path, result, str::FromStr};
 
 use bitvec::{order::Lsb0, slice::BitSlice, view::BitView};
 use common::{read_test_data, Error};
 use strum_macros::{Display, EnumString, VariantArray};
 
 fn main() -> Result<(), Error> {
-    let data = read_test_data(Path::new("./day07/testdata.dat")).unwrap();
+    let data = read_test_data(Path::new("./day07/example.dat")).unwrap();
     // println!("Example Data: \n{}", data);
 
     let mut sum_solveable_equations: i64 = 0;
+    let mut non_solveable_eq: Vec<Equation> = Vec::new(); // keep for part 2
     for line in data.lines() {
         let eq = Equation::from_str(line).unwrap();
+        if eq.is_solvable() {
+            sum_solveable_equations += eq.expected_result;
+        } else {
+            non_solveable_eq.push(eq);
+        }
+    }
+
+    println!("Sum of solveable equations: {}", sum_solveable_equations);
+    // assert_eq!(sum_solveable_equations, 3351424677624);
+
+    // Part 2
+    // add equation produced from concatenations to the list of non-solveable equiations
+    let mut equations_concatted: Vec<Equation> = Vec::new();
+    for eq in non_solveable_eq {
+        let combination_count = (2 as u64).pow(eq.operator_count());
+        for i in 0..combination_count as usize {
+            let concat_eq = Equation {
+                expected_result: eq.expected_result,
+                operands: eq.concat_operands(i.view_bits::<Lsb0>()),
+            };
+            equations_concatted.push(concat_eq);
+            println!("{}", i);
+        }
+    }
+
+    for eq in equations_concatted {
         if eq.is_solvable() {
             sum_solveable_equations += eq.expected_result;
         }
     }
 
-    println!("Sum of solveable equations: {}", sum_solveable_equations);
-    assert_eq!(sum_solveable_equations, 3351424677624);
-
+    println!("Sum of solveable equations Part 2: {}", sum_solveable_equations);
 
     Ok(())
 }
@@ -59,6 +84,25 @@ impl Equation {
         }
         result
     }
+
+    fn concat_operands(&self, operator_positions: &BitSlice<usize>) -> Vec<i64> {
+        let mut result_ops: Vec<i64> = Vec::new();
+        let mut operand_idx = 0;
+        for operator_idx in 0..self.operator_count() {
+            if operator_positions[operator_idx as usize] {
+                let op1 = self.operands[operand_idx as usize];
+                let op2 = self.operands[operand_idx as usize + 1];
+                let mut s: String = op1.to_string();
+                s += &op2.to_string();
+                result_ops.push(s.parse().unwrap());
+                operand_idx += 2;
+            } else {
+                result_ops.push(self.operands[operand_idx as usize]);
+                operand_idx += 1;
+            }
+        }
+        result_ops
+    }
 }
 
 impl FromStr for Equation {
@@ -95,8 +139,29 @@ impl Operator {
 
 #[cfg(test)]
 mod tests {
+    use bitvec::{bits, bitvec, vec};
+
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
+
+    #[test]
+    fn test_concat_operands() {
+        // let eq1 = Equation::from_str("190: 10 19").unwrap();
+        // let xx = eq1.concat_operands(bitvec![1].as_bitslice());
+        // assert_eq!(xx, vec![1019]);
+        let eq1 = Equation::from_str("3267: 81 40 27").unwrap();
+        let xx = eq1.concat_operands(bits![1,1]);
+        assert_eq!(xx, vec![814027]);
+        // let xx = eq1.concat_operands(1);
+        // assert_eq!(xx, vec![81, 4027]);
+        // let eq1 = Equation::from_str("7290: 6 8 6 15").unwrap();
+        // let xx = eq1.concat_operands(0);
+        // assert_eq!(xx, vec![68, 6, 15]);
+        // let xx = eq1.concat_operands(1);
+        // assert_eq!(xx, vec![6, 86, 15]);
+        // let xx = eq1.concat_operands(2);
+        // assert_eq!(xx, vec![6, 8, 615]);
+    }
 
     #[test]
     fn test_solvable() {
