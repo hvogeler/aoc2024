@@ -1,19 +1,22 @@
-use std::{path::Path, str::FromStr};
-
-use bitvec::{order::Lsb0, slice::BitSlice, view::BitView};
 use common::{read_test_data, Error};
 use convert_base::Convert;
+use std::{
+    io::{self, Write},
+    path::Path,
+    str::FromStr,
+    time::Instant,
+};
 use strum_macros::{Display, EnumString, VariantArray};
 
 fn main() -> Result<(), Error> {
-    let data = read_test_data(Path::new("./day07/example.dat")).unwrap();
+    let data = read_test_data(Path::new("./day07/testdata.dat")).unwrap();
     // println!("Example Data: \n{}", data);
 
     let mut sum_solveable_equations: i64 = 0;
     let mut non_solveable_eq: Vec<Equation> = Vec::new(); // keep for part 2
     for line in data.lines() {
         let eq = Equation::from_str(line).unwrap();
-        if eq.is_solvable() {
+        if eq.is_solvable(&[Operator::Add, Operator::Mul]) {
             sum_solveable_equations += eq.expected_result;
         } else {
             non_solveable_eq.push(eq);
@@ -21,31 +24,27 @@ fn main() -> Result<(), Error> {
     }
 
     println!("Sum of solveable equations: {}", sum_solveable_equations);
-    // assert_eq!(sum_solveable_equations, 3351424677624);
+    assert_eq!(sum_solveable_equations, 3_351_424_677_624);
 
     // Part 2
     // add equation produced from concatenations to the list of non-solveable equiations
-    // let mut equations_concatted: Vec<Equation> = Vec::new();
-    // for eq in non_solveable_eq {
-    //     let combination_count = (2 as u64).pow(eq.operator_count());
-    //     for i in 0..combination_count as usize {
-    //         let concat_eq = Equation {
-    //             expected_result: eq.expected_result,
-    //             operands: eq.concat_operands(i.view_bits::<Lsb0>()),
-    //         };
-    //         equations_concatted.push(concat_eq);
-    //     }
-    // }
-
-    // for eq in equations_concatted {
-    //     println!("Check: {:?}", eq);
-    //     if eq.is_solvable() {
-    //         println!("  Solveable: {:?}", eq);
-    //         sum_solveable_equations += eq.expected_result;
-    //     }
-    // }
-
-    println!("Sum of solveable equations Part 2: {}", sum_solveable_equations);
+    let now = Instant::now();
+    let mut current_percent = 0;
+    for (i, eq) in non_solveable_eq.iter().enumerate() {
+        if eq.is_solvable(&[Operator::Add, Operator::Mul, Operator::Concat]) {
+            sum_solveable_equations += eq.expected_result;
+        }
+        let percent = i * 100 / non_solveable_eq.len();
+        if percent % 10 == 0 && percent != current_percent {
+            print!("{}%..", percent);
+            io::stdout().flush().unwrap();
+            current_percent = percent;
+        }
+    }
+    let duration = now.elapsed();
+    println!("\nSum of solveable equations Part 2: {}", sum_solveable_equations);
+    println!("Duration: {} seconds", duration.as_secs());
+    assert_eq!(sum_solveable_equations, 204_976_636_995_111);
 
     Ok(())
 }
@@ -57,29 +56,26 @@ struct Equation {
 }
 
 impl Equation {
-    fn is_solvable(&self) -> bool {
-        let mut base = Convert::new(10, 2);
+    fn is_solvable(&self, operators: &[Operator]) -> bool {
+        let mut base = Convert::new(10, operators.len() as u64);
 
-        let combination_count = (2 as u64).pow(self.operator_count());
+        // Calculate all operator combinations. Depending on the number of operators and the number of operands.
+        // Example: (+, +) (+, -) (-, +) (-, -) for the operatiors + and - used in an equation with 3 operands (using 2 operators).
+        // Example: (+, +, +) .. (-, -, -) would be 8 (2^3) for 2 operators and 4 operands
+        // Example: (+, +) (+, -) (+, ||) (-, +) (-, -) (-, ||) (||, +) (||, -) ( ||, ||) 
+        //          which would be 9 (3^2) for 3 operators used in an equation with 3 operands.
+        // Check solveablity for each of the operator combinations.
+        let combination_count = (operators.len() as u64).pow(self.operator_count());
         for i in 0..combination_count {
             let mut b3: Vec<u64> = base.convert(&vec![i]);
             for _ in b3.len()..self.operator_count() as usize {
                 b3.push(0);
             }
-            let operators: Vec<Operator> = b3
-                .iter()
-                .map(|n| match n {
-                    0 => Operator::Add,
-                    1 => Operator::Mul,
-                    2 => Operator::Concat,
-                    _ => panic!("More than 3 operators not supported"),
-                })
-                .collect();
+            let operators: Vec<Operator> = b3.iter().map(|n| operators[*n as usize].clone()).collect();
             let eq_result = self.solve(&operators);
             if eq_result == self.expected_result {
                 return true;
             }
-            // println!("Result of equation: {}", eq_result);
         }
         false
     }
@@ -91,7 +87,6 @@ impl Equation {
     fn solve(&self, operators: &Vec<Operator>) -> i64 {
         let mut result = self.operands[0];
         for j in 0..self.operator_count() as usize {
-            // print!("{} ", if operators[j] { Operator::Add } else { Operator::Mul });
             match operators[j] {
                 Operator::Add => result += self.operands[j + 1],
                 Operator::Mul => result *= self.operands[j + 1],
@@ -101,32 +96,12 @@ impl Equation {
         result
     }
 
-    fn concat_2_ints(a:&i64, b:&i64) -> i64 {
+    fn concat_2_ints(a: &i64, b: &i64) -> i64 {
         let op1 = *a;
         let op2 = b;
         let mut s: String = op1.to_string();
         s += &op2.to_string();
         s.parse().unwrap()
-    }
-
-    fn concat_operands(&self, operator_positions: &BitSlice<usize>) -> Vec<i64> {
-        let mut result_ops: Vec<i64> = vec![self.operands[0]];
-        let mut src_operand_idx = 1;
-        let mut tgt_operand_idx = 0;
-        for operator_idx in 0..self.operator_count() {
-            if operator_positions[operator_idx as usize] {
-                let op1 = result_ops[tgt_operand_idx];
-                let op2 = self.operands[src_operand_idx];
-                let mut s: String = op1.to_string();
-                s += &op2.to_string();
-                result_ops[tgt_operand_idx] = s.parse().unwrap();
-            } else {
-                result_ops.push(self.operands[src_operand_idx]);
-                tgt_operand_idx += 1;
-            }
-            src_operand_idx += 1;
-        }
-        result_ops
     }
 }
 
@@ -148,7 +123,7 @@ impl FromStr for Equation {
     }
 }
 
-#[derive(Debug, VariantArray, EnumString, Display, PartialEq)]
+#[derive(Debug, VariantArray, EnumString, Display, PartialEq, Clone)]
 enum Operator {
     #[strum(to_string = "+")]
     Add,
@@ -160,7 +135,7 @@ enum Operator {
 
 #[cfg(test)]
 mod tests {
-    use bitvec::bits;
+
     use convert_base::Convert;
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
@@ -182,7 +157,6 @@ mod tests {
 
         let eq1 = Equation::from_str("7290: 6 8 6 15").unwrap();
         assert_eq!(eq1.solve(&vec![Operator::Add, Operator::Concat, Operator::Mul]), 146 * 15);
-
     }
 
     #[test]
@@ -192,55 +166,30 @@ mod tests {
         println!("{:?}", b3);
     }
 
-    // #[test]
-    // fn test_concat_operands() {
-    //     // let eq1 = Equation::from_str("190: 10 19").unwrap();
-    //     // let xx = eq1.concat_operands(bitvec![1].as_bitslice());
-    //     // assert_eq!(xx, vec![1019]);
-    //     let eq1 = Equation::from_str("3267: 81 40 27").unwrap();
-    //     let xx = eq1.concat_operands(bits![1, 1]);
-    //     assert_eq!(xx, vec![814027]);
-    //     let xx = eq1.concat_operands(bits![1, 0]);
-    //     assert_eq!(xx, vec![8140, 27]);
-    //     let xx = eq1.concat_operands(bits![0, 1]);
-    //     assert_eq!(xx, vec![81, 4027]);
-    //     let eq1 = Equation::from_str("7290: 6 8 6 15").unwrap();
-    //     let xx = eq1.concat_operands(bits![1, 1, 1]);
-    //     assert_eq!(xx, vec![68615]);
-    //     let xx = eq1.concat_operands(bits![0, 1, 1]);
-    //     assert_eq!(xx, vec![6, 8615]);
-    //     let xx = eq1.concat_operands(bits![0, 0, 1]);
-    //     assert_eq!(xx, vec![6, 8, 615]);
-    //     let xx = eq1.concat_operands(bits![0, 1, 0]);
-    //     assert_eq!(xx, vec![6, 86, 15]);
-    //     let xx = eq1.concat_operands(bits![1, 1, 0]);
-    //     assert_eq!(xx, vec![686, 15]);
-    //     let xx = eq1.concat_operands(bits![1, 0, 0]);
-    //     assert_eq!(xx, vec![68, 6, 15]);
-    //     let xx = eq1.concat_operands(bits![1, 0, 1]);
-    //     assert_eq!(xx, vec![68, 615]);
-    // }
-
     #[test]
     fn test_solvable() {
         let eq1 = Equation::from_str("3267: 81 40 27").unwrap();
-        assert!(eq1.is_solvable());
+        assert!(eq1.is_solvable(&[Operator::Add, Operator::Mul]));
         let eq1 = Equation::from_str("190: 10 19").unwrap();
-        assert!(eq1.is_solvable());
+        assert!(eq1.is_solvable(&[Operator::Add, Operator::Mul]));
         let eq1 = Equation::from_str("83: 17 5").unwrap();
-        assert!(!eq1.is_solvable());
+        assert!(!eq1.is_solvable(&[Operator::Add, Operator::Mul]));
         let eq1 = Equation::from_str("156: 15 6").unwrap();
-        assert!(!eq1.is_solvable());
+        assert!(!eq1.is_solvable(&[Operator::Add, Operator::Mul]));
         let eq1 = Equation::from_str("7290: 6 8 6 15").unwrap();
-        assert!(!eq1.is_solvable());
+        assert!(!eq1.is_solvable(&[Operator::Add, Operator::Mul]));
         let eq1 = Equation::from_str("161011: 16 10 13").unwrap();
-        assert!(!eq1.is_solvable());
+        assert!(!eq1.is_solvable(&[Operator::Add, Operator::Mul]));
         let eq1 = Equation::from_str("192: 17 8 14").unwrap();
-        assert!(!eq1.is_solvable());
+        assert!(!eq1.is_solvable(&[Operator::Add, Operator::Mul]));
         let eq1 = Equation::from_str("21037: 9 7 18 13").unwrap();
-        assert!(!eq1.is_solvable());
+        assert!(!eq1.is_solvable(&[Operator::Add, Operator::Mul]));
         let eq1 = Equation::from_str("292: 11 6 16 20").unwrap();
-        assert!(eq1.is_solvable());
+        assert!(eq1.is_solvable(&[Operator::Add, Operator::Mul]));
+
+        // Part 2
+        let eq1 = Equation::from_str("7290: 6 8 6 15").unwrap();
+        assert!(eq1.is_solvable(&[Operator::Add, Operator::Mul, Operator::Concat]));
     }
 
     #[test]
@@ -249,7 +198,7 @@ mod tests {
 
         let mut solveable_equations: Vec<usize> = vec![];
         for (i, line) in data.lines().enumerate() {
-            if Equation::from_str(line).unwrap().is_solvable() {
+            if Equation::from_str(line).unwrap().is_solvable(&[Operator::Add, Operator::Mul]) {
                 solveable_equations.push(i);
             }
         }
