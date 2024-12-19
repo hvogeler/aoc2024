@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 bitvec = "1.0.1"
 common = { path = "../common"}
+convert-base = "1.1.2"
 regex = "1.11.1"
 strum = "0.26.3"
 strum_macros = "0.26.4"

@@ -142,9 +142,17 @@ impl Operator {
 #[cfg(test)]
 mod tests {
     use bitvec::{bits, bitvec, vec};
+    use convert_base::Convert;
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
+
+    #[test]
+    fn test_base_convert() {
+        let mut base = Convert::new(10, 3);
+        let b3: Vec<u64> = base.convert(&vec![26u64]);
+        println!("{:?}", b3);
+    }
 
     #[test]
     fn test_concat_operands() {
