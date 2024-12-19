@@ -19,6 +19,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "convert-base"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e56a404f2112d00ba80a516b60ca3744ef6bd776baa14126eb7d7c11b42cac8a"
+
+[[package]]
 name = "day01"
 version = "0.1.0"
 dependencies = [
@@ -79,7 +85,17 @@ name = "day07"
 version = "0.1.0"
 dependencies = [
  "common",
+ "convert-base",
  "regex",
+ "strum",
+ "strum_macros",
+]
+
+[[package]]
+name = "day08"
+version = "0.1.0"
+dependencies = [
+ "common",
  "strum",
  "strum_macros",
 ]

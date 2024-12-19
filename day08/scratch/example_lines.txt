@@ -1,0 +1,186 @@
+{
+    Antenna {
+        frequency: '0',
+        location: Location {
+            row: 3,
+            col: 7,
+        },
+    }: [
+        GeoLine {
+            a: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 3,
+                    col: 7,
+                },
+            },
+            b: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 4,
+                    col: 4,
+                },
+            },
+        },
+    ],
+    Antenna {
+        frequency: 'A',
+        location: Location {
+            row: 8,
+            col: 8,
+        },
+    }: [
+        GeoLine {
+            a: Antenna {
+                frequency: 'A',
+                location: Location {
+                    row: 8,
+                    col: 8,
+                },
+            },
+            b: Antenna {
+                frequency: 'A',
+                location: Location {
+                    row: 9,
+                    col: 9,
+                },
+            },
+        },
+    ],
+    Antenna {
+        frequency: 'A',
+        location: Location {
+            row: 5,
+            col: 6,
+        },
+    }: [
+        GeoLine {
+            a: Antenna {
+                frequency: 'A',
+                location: Location {
+                    row: 5,
+                    col: 6,
+                },
+            },
+            b: Antenna {
+                frequency: 'A',
+                location: Location {
+                    row: 8,
+                    col: 8,
+                },
+            },
+        },
+        GeoLine {
+            a: Antenna {
+                frequency: 'A',
+                location: Location {
+                    row: 5,
+                    col: 6,
+                },
+            },
+            b: Antenna {
+                frequency: 'A',
+                location: Location {
+                    row: 9,
+                    col: 9,
+                },
+            },
+        },
+    ],
+    Antenna {
+        frequency: '0',
+        location: Location {
+            row: 1,
+            col: 8,
+        },
+    }: [
+        GeoLine {
+            a: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 1,
+                    col: 8,
+                },
+            },
+            b: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 2,
+                    col: 5,
+                },
+            },
+        },
+        GeoLine {
+            a: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 1,
+                    col: 8,
+                },
+            },
+            b: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 3,
+                    col: 7,
+                },
+            },
+        },
+        GeoLine {
+            a: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 1,
+                    col: 8,
+                },
+            },
+            b: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 4,
+                    col: 4,
+                },
+            },
+        },
+    ],
+    Antenna {
+        frequency: '0',
+        location: Location {
+            row: 2,
+            col: 5,
+        },
+    }: [
+        GeoLine {
+            a: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 2,
+                    col: 5,
+                },
+            },
+            b: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 3,
+                    col: 7,
+                },
+            },
+        },
+        GeoLine {
+            a: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 2,
+                    col: 5,
+                },
+            },
+            b: Antenna {
+                frequency: '0',
+                location: Location {
+                    row: 4,
+                    col: 4,
+                },
+            },
+        },
+    ],
+}
