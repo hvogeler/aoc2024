@@ -16,6 +16,7 @@ const ANTINODE: char = '#';
 struct CityMap {
     antennas: Vec<Antenna>,
     ants_by_frequency: HashMap<char, Vec<Antenna>>,
+    lines_by_antennas: HashMap<Antenna, Vec<GeoLine>>,
     dimensions: MapDimensions,
 }
 
@@ -42,6 +43,22 @@ impl CityMap {
             }
         }
     }
+
+    fn create_lines(&mut self) {
+        self.lines_by_antennas.clear();
+        for freq in self.ants_by_frequency.keys() {
+            let antennas = self.ants_by_frequency.get(freq).unwrap();
+            for i in 0..antennas.len() - 1 {
+                let mut lines: Vec<GeoLine> = Vec::new();
+                for j in (i+1)..antennas.len() {
+                    let geo_line = GeoLine::new(antennas[i].clone(), antennas[j].clone());
+                    lines.push(geo_line);
+                }
+                self.lines_by_antennas.insert(antennas[i].clone(), lines);
+            }
+        }
+    }
+
 }
 
 impl FromStr for CityMap {
@@ -64,7 +81,7 @@ impl FromStr for CityMap {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 struct Antenna {
     frequency: char,
     location: Location,
@@ -81,19 +98,31 @@ impl Antenna {
 
 #[derive(Debug, Default, Clone)]
 struct GeoLine {
-    m: f64,
-    b: f64,
+    a: Antenna,
+    b: Antenna,
 }
 
 impl GeoLine {
-    fn from_two_locations(loc1: &Location, loc2: &Location) -> Self {
-        let m: f64 = f64::from((loc1.row - loc2.row) as f32 / (loc1.col - loc2.col) as f32);
-        let b = loc1.row as f64 - m * loc1.col as f64;
-        GeoLine { m, b }
+    fn new(a: Antenna, b: Antenna) -> Self {
+        Self {
+            a,
+            b,
+        }
+    }
+    fn get_line_eq(&self) -> LineEq {
+        let m: f64 = f64::from((self.a.location.row - self.b.location.row) as f32 / (self.a.location.col - self.b.location.col) as f32);
+        let b = self.a.location.row as f64 - m * self.a.location.col as f64;
+        LineEq { m, b }
     }
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
+struct LineEq {
+    m: f64,
+    b: f64,
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 struct Location {
     row: i64,
     col: i64,
@@ -116,6 +145,26 @@ mod tests {
 
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
+
+    #[test]
+    fn test_lines() {
+        let data = read_test_data(Path::new("./example.dat")).unwrap();
+        let mut city_map = CityMap::from_str(&data).unwrap();
+        city_map.create_lines();
+        println!("{:#?}", city_map.lines_by_antennas);
+        let line_a = city_map.lines_by_antennas.get(&Antenna::new('0', 3, 7)).unwrap();
+        assert_eq!(line_a.len(), 1);
+        assert_eq!(line_a[0].b, Antenna::new('0', 4, 4));
+        let line_a = city_map.lines_by_antennas.get(&Antenna::new('0', 1, 8)).unwrap();
+        assert_eq!(line_a.len(), 3);
+        assert_eq!(line_a[1].b, Antenna::new('0', 3, 7));
+        assert_eq!(line_a[1].get_line_eq(), LineEq {m: -2.0, b: 17.0});
+        let line_a = city_map.lines_by_antennas.get(&Antenna::new('0', 2, 5)).unwrap();
+        assert_eq!(line_a.len(), 2);
+        assert_eq!(line_a[0].b, Antenna::new('0', 3, 7));
+        assert_eq!(line_a[0].get_line_eq(), LineEq {m: 0.5, b: -0.5});
+        // assert_eq!(city_map.lines_by_antennas.len(), 10);
+    }
 
     #[test]
     fn test_load_city_map() {
